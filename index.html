@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marketing KPI Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-raised: #253247;
+      --border: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #6366f1;
+      --accent-light: #818cf8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --google: #f97316;
+      --meta: #3b82f6;
+      --email: #10b981;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 6px var(--success);
+    }
+
+    .date-range {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 22px;
+      transition: transform 0.15s, border-color 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    .kpi-card.spend::before { background: var(--google); }
+    .kpi-card.roas::before { background: var(--success); }
+    .kpi-card.cac::before { background: var(--warning); }
+    .kpi-card.conversions::before { background: var(--accent); }
+
+    .kpi-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-value {
+      font-size: 1.85rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .kpi-change {
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .kpi-change.up { color: var(--success); }
+    .kpi-change.down { color: var(--danger); }
+
+    .kpi-change svg { width: 14px; height: 14px; }
+
+    /* Charts Grid */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 20px;
+    }
+
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 22px 16px;
+    }
+
+    .chart-card h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chart-card h3 .icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+    }
+
+    .chart-card h3 .icon.spend { background: rgba(249, 115, 22, 0.15); color: var(--google); }
+    .chart-card h3 .icon.roas { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+    .chart-card h3 .icon.cac { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .chart-card h3 .icon.funnel { background: rgba(99, 102, 241, 0.15); color: var(--accent); }
+    .chart-card h3 .icon.revenue { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
+    .chart-card h3 .icon.table { background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); }
+
+    .chart-card .chart-wrap {
+      position: relative;
+      height: 280px;
+    }
+
+    .span-6 { grid-column: span 6; }
+    .span-4 { grid-column: span 4; }
+    .span-12 { grid-column: span 12; }
+
+    /* Data Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table th {
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: rgba(15, 23, 42, 0.4);
+    }
+
+    .data-table td {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .data-table tr:hover td {
+      color: var(--text-primary);
+      background: rgba(99, 102, 241, 0.04);
+    }
+
+    .data-table td strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .text-right { text-align: right !important; }
+    .text-center { text-align: center !important; }
+
+    .tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .tag-google { background: rgba(249, 115, 22, 0.15); color: #fdba74; }
+    .tag-meta { background: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+    .tag-email { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .span-6, .span-4 { grid-column: span 6; }
+    }
+
+    @media (max-width: 768px) {
+      .span-6, .span-4, .span-12 { grid-column: span 12; }
+      body { padding: 16px; }
+      .kpi-value { font-size: 1.5rem; }
+      .data-table { font-size: 0.78rem; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+
+    .section-divider {
+      grid-column: span 12;
+      margin: 8px 0;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:var(--accent);font-size:1.1rem;">📊</span>
+        Marketing KPI Dashboard
+      </h1>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span class="badge"><span class="badge-dot"></span> Live Data</span>
+        <span class="date-range">Jan 2025 – Jun 2025</span>
+      </div>
+    </header>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card spend">
+        <div class="kpi-label">Ad Spend <span style="font-weight:400;color:var(--text-muted);">Jun</span></div>
+        <div class="kpi-value" id="kpi-spend">$0</div>
+        <div class="kpi-change up">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+          +12.4% vs May
+        </div>
+      </div>
+      <div class="kpi-card roas">
+        <div class="kpi-label">ROAS <span style="font-weight:400;color:var(--text-muted);">Jun</span></div>
+        <div class="kpi-value" id="kpi-roas">0.0x</div>
+        <div class="kpi-change up">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+          +8.2% vs May
+        </div>
+      </div>
+      <div class="kpi-card cac">
+        <div class="kpi-label">CAC <span style="font-weight:400;color:var(--text-muted);">Jun</span></div>
+        <div class="kpi-value" id="kpi-cac">$0</div>
+        <div class="kpi-change down">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline><polyline points="17 18 23 18 23 12"></polyline></svg>
+          -4.1% vs May
+        </div>
+      </div>
+      <div class="kpi-card conversions">
+        <div class="kpi-label">Conversions <span style="font-weight:400;color:var(--text-muted);">Jun</span></div>
+        <div class="kpi-value" id="kpi-conversions">0</div>
+        <div class="kpi-change up">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+          +15.7% vs May
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider">Performance Charts</div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+      <!-- Ad Spend by Channel -->
+      <div class="chart-card span-6">
+        <h3><span class="icon spend">💰</span> Ad Spend by Channel</h3>
+        <div class="chart-wrap"><canvas id="chart-spend"></canvas></div>
+      </div>
+
+      <!-- ROAS Trend -->
+      <div class="chart-card span-6">
+        <h3><span class="icon roas">📈</span> ROAS Trend</h3>
+        <div class="chart-wrap"><canvas id="chart-roas"></canvas></div>
+      </div>
+
+      <!-- CAC Trend -->
+      <div class="chart-card span-6">
+        <h3><span class="icon cac">💸</span> CAC Trend</h3>
+        <div class="chart-wrap"><canvas id="chart-cac"></canvas></div>
+      </div>
+
+      <!-- Conversion Funnel -->
+      <div class="chart-card span-6">
+        <h3><span class="icon funnel">🔄</span> Conversion Funnel (June)</h3>
+        <div class="chart-wrap"><canvas id="chart-funnel"></canvas></div>
+      </div>
+
+      <!-- Revenue by Channel -->
+      <div class="chart-card span-6">
+        <h3><span class="icon revenue">💵</span> Revenue by Channel</h3>
+        <div class="chart-wrap"><canvas id="chart-revenue"></canvas></div>
+      </div>
+
+      <!-- Channel CAC Comparison -->
+      <div class="chart-card span-6">
+        <h3><span class="icon cac">📉</span> CAC by Channel (June)</h3>
+        <div class="chart-wrap"><canvas id="chart-cac-channel"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-divider">Monthly Breakdown</div>
+
+    <!-- Data Table -->
+    <div class="chart-card span-12">
+      <h3><span class="icon table">📋</span> Detailed Monthly Metrics</h3>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="monthly-table">
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Channel</th>
+              <th class="text-right">Spend</th>
+              <th class="text-right">Revenue</th>
+              <th class="text-right">ROAS</th>
+              <th class="text-right">CAC</th>
+              <th class="text-right">Clicks</th>
+              <th class="text-right">Leads</th>
+              <th class="text-right">Conv.</th>
+              <th class="text-right">Conv. Rate</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ─── Mock Data ─── */
+    const DATA = {
+      months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      channels: ['Google Ads', 'Meta', 'Email'],
+      
+      // Ad spend by channel ($) across 6 months
+      spend: {
+        google:  [18500, 21200, 19800, 24500, 26800, 29200],
+        meta:    [14200, 15800, 17500, 18900, 21000, 23500],
+        email:   [3200,  3500,  4100,  4800,  5200,  5800],
+      },
+      
+      // Revenue by channel ($) across 6 months
+      revenue: {
+        google:  [52800, 64200, 61200, 83200, 96500, 118200],
+        meta:    [39800, 48900, 55200, 64200, 75600, 89300],
+        email:   [12800, 15200, 18900, 23500, 27600, 32400],
+      },
+      
+      // Channel-specific ROAS
+      roasChannel: {
+        google: [2.85, 3.03, 3.09, 3.40, 3.60, 4.05],
+        meta:   [2.80, 3.10, 3.15, 3.40, 3.60, 3.80],
+        email:  [4.00, 4.35, 4.61, 4.90, 5.30, 5.59],
+      },
+      
+      // Blended ROAS
+      roas: [2.85, 3.02, 3.18, 3.45, 3.72, 4.05],
+      
+      // Blended CAC
+      cac: [48.50, 46.20, 43.80, 41.50, 39.20, 37.60],
+      
+      // Channel-specific CAC (June only for comparison chart)
+      cacChannel: {
+        google: 42.30,
+        meta:   38.50,
+        email:  18.20,
+      },
+      
+      // Funnel for June (last month)
+      funnel: {
+        labels: ['Impressions', 'Clicks', 'Leads', 'Conversions'],
+        values: [2840000, 85200, 12800, 3420],
+      },
+      
+      // Granular monthly data for table
+      monthly: [
+        { month: 'Jan',  channel: 'Google Ads', spend: 18500, revenue: 52800,  roas: 2.85, cac: 52.10, clicks: 15200, leads: 2100, conv: 355,  rate: '2.33%' },
+        { month: 'Jan',  channel: 'Meta',       spend: 14200, revenue: 39800,  roas: 2.80, cac: 48.50, clicks: 18900, leads: 1680, conv: 293,  rate: '1.55%' },
+        { month: 'Jan',  channel: 'Email',      spend: 3200,  revenue: 12800,  roas: 4.00, cac: 21.30, clicks: 8200,  leads: 920,  conv: 150,  rate: '1.83%' },
+        { month: 'Feb',  channel: 'Google Ads', spend: 21200, revenue: 64200,  roas: 3.03, cac: 49.80, clicks: 17800, leads: 2450, conv: 426,  rate: '2.39%' },
+        { month: 'Feb',  channel: 'Meta',       spend: 15800, revenue: 48900,  roas: 3.10, cac: 45.20, clicks: 22100, leads: 1980, conv: 350,  rate: '1.58%' },
+        { month: 'Feb',  channel: 'Email',      spend: 3500,  revenue: 15200,  roas: 4.35, cac: 19.50, clicks: 9500,  leads: 1050, conv: 180,  rate: '1.89%' },
+        { month: 'Mar',  channel: 'Google Ads', spend: 19800, revenue: 61200,  roas: 3.09, cac: 47.20, clicks: 16500, leads: 2320, conv: 420,  rate: '2.55%' },
+        { month: 'Mar',  channel: 'Meta',       spend: 17500, revenue: 55200,  roas: 3.15, cac: 43.80, clicks: 24500, leads: 2200, conv: 400,  rate: '1.63%' },
+        { month: 'Mar',  channel: 'Email',      spend: 4100,  revenue: 18900,  roas: 4.61, cac: 17.80, clicks: 11200, leads: 1280, conv: 230,  rate: '2.05%' },
+        { month: 'Apr',  channel: 'Google Ads', spend: 24500, revenue: 83200,  roas: 3.40, cac: 44.50, clicks: 21000, leads: 3100, conv: 550,  rate: '2.62%' },
+        { month: 'Apr',  channel: 'Meta',       spend: 18900, revenue: 64200,  roas: 3.40, cac: 40.20, clicks: 28900, leads: 2650, conv: 470,  rate: '1.63%' },
+        { month: 'Apr',  channel: 'Email',      spend: 4800,  revenue: 23500,  roas: 4.90, cac: 16.20, clicks: 14500, leads: 1620, conv: 296,  rate: '2.04%' },
+        { month: 'May',  channel: 'Google Ads', spend: 26800, revenue: 96500,  roas: 3.60, cac: 41.80, clicks: 24500, leads: 3650, conv: 642,  rate: '2.62%' },
+        { month: 'May',  channel: 'Meta',       spend: 21000, revenue: 75600,  roas: 3.60, cac: 38.50, clicks: 32500, leads: 2980, conv: 545,  rate: '1.68%' },
+        { month: 'May',  channel: 'Email',      spend: 5200,  revenue: 27600,  roas: 5.30, cac: 14.90, clicks: 16800, leads: 1850, conv: 349,  rate: '2.08%' },
+        { month: 'Jun',  channel: 'Google Ads', spend: 29200, revenue: 118200, roas: 4.05, cac: 42.30, clicks: 28200, leads: 4200, conv: 690,  rate: '2.45%' },
+        { month: 'Jun',  channel: 'Meta',       spend: 23500, revenue: 89300,  roas: 3.80, cac: 38.50, clicks: 38200, leads: 3450, conv: 610,  rate: '1.60%' },
+        { month: 'Jun',  channel: 'Email',      spend: 5800,  revenue: 32400,  roas: 5.59, cac: 18.20, clicks: 19500, leads: 2150, conv: 385,  rate: '1.97%' },
+      ],
+      
+      // Current month index (June = 5)
+      currentMonth: 5
+    };
+
+    /* ─── Chart.js Defaults ─── */
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = '#334155';
+    Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+    Chart.defaults.font.size = 12;
+
+    const commonOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1e293b',
+          titleColor: '#f8fafc',
+          bodyColor: '#cbd5e1',
+          borderColor: '#334155',
+          borderWidth: 1,
+          padding: 12,
+          cornerRadius: 10,
+          displayColors: true,
+          usePointStyle: true,
+          callbacks: {
+            labelColor: (ctx) => ({
+              borderColor: 'transparent',
+              backgroundColor: ctx.dataset.backgroundColor || ctx.dataset.borderColor,
+              borderRadius: 4
+            })
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#64748b', font: { size: 11 } }
+        },
+        y: {
+          grid: { color: '#1e293b' },
+          ticks: { color: '#64748b', font: { size: 11 } },
+          border: { display: false }
+        }
+      }
+    };
+
+    /* ─── Formatters ─── */
+    const fmtUSD = (n) => '$' + n.toLocaleString();
+    const fmtK = (n) => {
+      if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+      if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+      return n.toLocaleString();
+    };
+
+    /* ─── KPI Cards ─── */
+    const idx = DATA.currentMonth;
+    const totalSpend = DATA.spend.google[idx] + DATA.spend.meta[idx] + DATA.spend.email[idx];
+    const totalRevenue = DATA.revenue.google[idx] + DATA.revenue.meta[idx] + DATA.revenue.email[idx];
+    const totalConv = DATA.monthly.filter(r => r.month === 'Jun').reduce((s, r) => s + r.conv, 0);
+    document.getElementById('kpi-spend').textContent = fmtUSD(totalSpend);
+    document.getElementById('kpi-roas').textContent = DATA.roas[idx].toFixed(2) + 'x';
+    document.getElementById('kpi-cac').textContent = fmtUSD(DATA.cac[idx]);
+    document.getElementById('kpi-conversions').textContent = totalConv.toLocaleString();
+
+    /* ─── 1. Ad Spend by Channel (Stacked Bar) ─── */
+    new Chart(document.getElementById('chart-spend'), {
+      type: 'bar',
+      data: {
+        labels: DATA.months,
+        datasets: [
+          {
+            label: 'Google Ads',
+            data: DATA.spend.google,
+            backgroundColor: '#f97316',
+            borderRadius: 4,
+            barPercentage: 0.6,
+          },
+          {
+            label: 'Meta',
+            data: DATA.spend.meta,
+            backgroundColor: '#3b82f6',
+            borderRadius: 4,
+            barPercentage: 0.6,
+          },
+          {
+            label: 'Email',
+            data: DATA.spend.email,
+            backgroundColor: '#10b981',
+            borderRadius: 4,
+            barPercentage: 0.6,
+          }
+        ]
+      },
+      options: {
+        ...commonOptions,
+        plugins: {
+          ...commonOptions.plugins,
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: { usePointStyle: true, pointStyle: 'rectRounded', padding: 20, color: '#94a3b8' }
+          },
+          tooltip: {
+            ...commonOptions.plugins.tooltip,
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${fmtUSD(ctx.raw)}`
+            }
+          }
+        },
+        scales: {
+          ...commonOptions.scales,
+          y: {
+            ...commonOptions.scales.y,
+            stacked: true,
+            ticks: {
+              ...commonOptions.scales.y.ticks,
+              callback: (v) => '$' + (v / 1000) + 'k'
+            }
+          },
+          x: {
+            ...commonOptions.scales.x,
+            stacked: true
+          }
+        }
+      }
+    });
+
+    /* ─── 2. ROAS Trend (Line + Area) ─── */
+    new Chart(document.getElementById('chart-roas'), {
+      type: 'line',
+      data: {
+        labels: DATA.months,
+        datasets: [{
+          label: 'ROAS',
+          data: DATA.roas,
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.08)',
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#10b981',
+          pointBorderColor: '#0f172a',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          borderWidth: 3
+        }]
+      },
+      options: {
+        ...commonOptions,
+        plugins: {
+          ...commonOptions.plugins,
+          tooltip: {
+            ...commonOptions.plugins.tooltip,
+            callbacks: { label: (ctx) => `ROAS: ${ctx.raw.toFixed(2)}x` }
+          }
+        },
+        scales: {
+          ...commonOptions.scales,
+          y: {
+            ...commonOptions.scales.y,
+            min: 2,
+            ticks: { callback: (v) => v.toFixed(1) + 'x' }
+          }
+        }
+      }
+    });
+
+    /* ─── 3. CAC Trend (Line + Area) ─── */
+    new Chart(document.getElementById('chart-cac'), {
+      type: 'line',
+      data: {
+        labels: DATA.months,
+        datasets: [{
+          label: 'CAC',
+          data: DATA.cac,
+          borderColor: '#f59e0b',
+          backgroundColor: 'rgba(245, 158, 11, 0.08)',
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#f59e0b',
+          pointBorderColor: '#0f172a',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          borderWidth: 3
+        }]
+      },
+      options: {
+        ...commonOptions,
+        plugins: {
+          ...commonOptions.plugins,
+          tooltip: {
+            ...commonOptions.plugins.tooltip,
+            callbacks: { label: (ctx) => `CAC: $${ctx.raw.toFixed(2)}` }
+          }
+        },
+        scales: {
+          ...commonOptions.scales,
+          y: {
+            ...commonOptions.scales.y,
+            ticks: { callback: (v) => '$' + v.toFixed(0) }
+          }
+        }
+      }
+    });
+
+    /* ─── 4. Conversion Funnel (Horizontal Bar) ─── */
+    new Chart(document.getElementById('chart-funnel'), {
+      type: 'bar',
+      data: {
+        labels: DATA.funnel.labels,
+        datasets: [{
+          label: 'Volume',
+          data: DATA.funnel.values,
+          backgroundColor: [
+            'rgba(99, 102, 241, 0.8)',
+            'rgba(99, 102, 241, 0.6)',
+            'rgba(99, 102, 241, 0.4)',
+            'rgba(99, 102, 241, 0.9)',
+          ],
+          borderRadius: 6,
+          barPercentage: 0.55,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1e293b',
+            titleColor: '#f8fafc',
+            bodyColor: '#cbd5e1',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 10,
+            callbacks: {
+              label: (ctx) => {
+                const val = ctx.raw;
+                const prev = ctx.dataIndex > 0 ? DATA.funnel.values[ctx.dataIndex - 1] : val;
+                const rate = ctx.dataIndex > 0 ? ((val / prev) * 100).toFixed(1) + '%' : '100%';
+                return `${fmtK(val)}  (drop-off: ${rate})`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: '#1e293b' },
+            ticks: {
+              color: '#64748b',
+              callback: (v) => fmtK(v)
+            },
+            border: { display: false }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { color: '#cbd5e1', font: { weight: '600', size: 12 } }
+          }
+        }
+      }
+    });
+
+    /* ─── 5. Revenue by Channel (Grouped Bar) ─── */
+    new Chart(document.getElementById('chart-revenue'), {
+      type: 'bar',
+      data: {
+        labels: DATA.months,
+        datasets: [
+          {
+            label: 'Google Ads',
+            data: DATA.revenue.google,
+            backgroundColor: '#f97316',
+            borderRadius: 4,
+            barPercentage: 0.65,
+          },
+          {
+            label: 'Meta',
+            data: DATA.revenue.meta,
+            backgroundColor: '#3b82f6',
+            borderRadius: 4,
+            barPercentage: 0.65,
+          },
+          {
+            label: 'Email',
+            data: DATA.revenue.email,
+            backgroundColor: '#10b981',
+            borderRadius: 4,
+            barPercentage: 0.65,
+          }
+        ]
+      },
+      options: {
+        ...commonOptions,
+        plugins: {
+          ...commonOptions.plugins,
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: { usePointStyle: true, pointStyle: 'rectRounded', padding: 20, color: '#94a3b8' }
+          },
+          tooltip: {
+            ...commonOptions.plugins.tooltip,
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${fmtUSD(ctx.raw)}`
+            }
+          }
+        },
+        scales: {
+          ...commonOptions.scales,
+          y: {
+            ...commonOptions.scales.y,
+            ticks: {
+              ...commonOptions.scales.y.ticks,
+              callback: (v) => '$' + (v / 1000) + 'k'
+            }
+          }
+        }
+      }
+    });
+
+    /* ─── 6. CAC by Channel (Doughnut) ─── */
+    new Chart(document.getElementById('chart-cac-channel'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Google Ads', 'Meta', 'Email'],
+        datasets: [{
+          data: [DATA.cacChannel.google, DATA.cacChannel.meta, DATA.cacChannel.email],
+          backgroundColor: ['#f97316', '#3b82f6', '#10b981'],
+          borderWidth: 0,
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: { usePointStyle: true, pointStyle: 'circle', padding: 16, color: '#94a3b8' }
+          },
+          tooltip: {
+            backgroundColor: '#1e293b',
+            titleColor: '#f8fafc',
+            bodyColor: '#cbd5e1',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 10,
+            callbacks: {
+              label: (ctx) => `${ctx.label}: $${ctx.raw.toFixed(2)}`
+            }
+          }
+        }
+      }
+    });
+
+    /* ─── Populate Data Table ─── */
+    const tbody = document.getElementById('table-body');
+    DATA.monthly.forEach(row => {
+      const tr = document.createElement('tr');
+      const tagClass = row.channel === 'Google Ads' ? 'tag-google' : row.channel === 'Meta' ? 'tag-meta' : 'tag-email';
+      tr.innerHTML = `
+        <td><strong>${row.month}</strong></td>
+        <td><span class="tag ${tagClass}">${row.channel}</span></td>
+        <td class="text-right">${fmtUSD(row.spend)}</td>
+        <td class="text-right">${fmtUSD(row.revenue)}</td>
+        <td class="text-right">${row.roas.toFixed(2)}x</td>
+        <td class="text-right">$${row.cac.toFixed(2)}</td>
+        <td class="text-right">${fmtK(row.clicks)}</td>
+        <td class="text-right">${fmtK(row.leads)}</td>
+        <td class="text-right">${row.conv.toLocaleString()}</td>
+        <td class="text-right">${row.rate}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  </script>
+</body>
+</html>
